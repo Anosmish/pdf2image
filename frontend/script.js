@@ -20,12 +20,18 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('scale', document.getElementById('scale').value);
 
     try {
-      const backendUrl = 'https://pdf2image-gg8f.onrender.com/convert.php';
+      const backendUrl = 'https://your-backend.onrender.com/convert.php'; // <-- Update this
+
       const response = await fetch(backendUrl, { method: 'POST', body: formData });
 
       if (!response.ok) {
-        const json = await response.json();
-        throw new Error(json.error || 'Conversion failed');
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const json = await response.json();
+          throw new Error(json.error || 'Conversion failed');
+        } else {
+          throw new Error('Backend returned non-JSON response (404/HTML)');
+        }
       }
 
       const blob = await response.blob();
