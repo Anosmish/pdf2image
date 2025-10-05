@@ -17,23 +17,23 @@ function respondError($message, $code = 400) {
     exit;
 }
 
-// Enable PHP error logging
+// -------------------- Enable error logging --------------------
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Fontconfig fix for Imagick on Render
+// Fontconfig fix for Render's container
 putenv('FONTCONFIG_PATH=' . sys_get_temp_dir());
 putenv('HOME=' . sys_get_temp_dir());
 
-// -------------------- Check Imagick --------------------
+// -------------------- Check Imagick and PDF support --------------------
 if (!extension_loaded('imagick')) respondError('Imagick not installed', 500);
 $imCheck = new Imagick();
 if (!in_array('PDF', $imCheck->queryFormats())) {
     respondError('Imagick does not support PDF. Ghostscript may be missing.', 500);
 }
 
-// -------------------- Validate uploaded file --------------------
+// -------------------- Validate uploaded PDF --------------------
 if (!isset($_FILES['pdf']) || $_FILES['pdf']['error'] !== UPLOAD_ERR_OK) {
     respondError('No PDF uploaded or upload error', 400);
 }
@@ -63,7 +63,6 @@ try {
     $im->setResolution($density, $density);
 
     $im->readImage($uploadedPath);
-
     $pageCount = $im->getNumberImages();
     error_log("Number of pages detected: $pageCount");
     if ($pageCount === 0) respondError('PDF has no pages', 500);
@@ -83,9 +82,11 @@ try {
         }
 
         $outName = sprintf('%s/page-%03d.%s', $workDir, $i + 1, $format === 'jpg' ? 'jpg' : 'png');
+        error_log("Attempting to write image: $outName");
 
         if (!$page->writeImage($outName)) {
-            error_log("Failed to write image: $outName");
+            error_log("FAILED to write image: $outName");
+            respondError("Failed to write image: $outName. Check permissions and Ghostscript.", 500);
         } else {
             $images[] = $outName;
             error_log("Written image: $outName");
