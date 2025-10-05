@@ -18,10 +18,14 @@ function respondError($message, $code = 400) {
     exit;
 }
 
-// Enable PHP error logging for debugging
+// Enable PHP error logging
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+// -------------------- Fontconfig fix --------------------
+putenv('FONTCONFIG_PATH=/tmp');
+putenv('HOME=/tmp');
 
 // -------------------- Check Imagick --------------------
 if (!extension_loaded('imagick')) {
@@ -36,13 +40,13 @@ if (!in_array('PDF', $imCheck->queryFormats())) {
 
 // -------------------- Check uploaded file --------------------
 if (!isset($_FILES['pdf']) || $_FILES['pdf']['error'] !== UPLOAD_ERR_OK) {
-    respondError('No PDF file uploaded or upload error');
+    respondError('No PDF file uploaded or upload error', 400);
 }
 
 $uploadedPath = $_FILES['pdf']['tmp_name'];
 
 if (!file_exists($uploadedPath)) {
-    respondError('Uploaded file not found');
+    respondError('Uploaded file not found', 400);
 }
 
 // -------------------- Optional POST parameters --------------------
@@ -61,8 +65,6 @@ try {
     $im = new Imagick();
     $density = max(72, intval(72 * ($scale / 100)));
     $im->setResolution($density, $density);
-
-    // Read PDF pages
     $im->readImage($uploadedPath);
 
     $images = [];
@@ -92,7 +94,7 @@ try {
     }
 
     if (empty($images)) {
-        respondError('No images generated. Ensure PDF is valid and Ghostscript is installed.', 500);
+        respondError('No images generated. Check PDF validity and Ghostscript installation.', 500);
     }
 
     // -------------------- Create ZIP --------------------
@@ -116,7 +118,6 @@ try {
 } catch (Exception $e) {
     respondError('Processing error: ' . $e->getMessage(), 500);
 } finally {
-    // -------------------- Cleanup --------------------
     foreach (glob("$workDir/*") as $file) {
         @unlink($file);
     }
