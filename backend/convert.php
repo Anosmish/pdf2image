@@ -1,9 +1,16 @@
 <?php
+// -------------------- CORS --------------------
 header("Access-Control-Allow-Origin: https://pdf2picture.netlify.app");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Helper function for error handling
+// Handle preflight request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+// -------------------- Helper function --------------------
 function respondError($message, $code = 400) {
     http_response_code($code);
     header('Content-Type: application/json');
@@ -11,25 +18,32 @@ function respondError($message, $code = 400) {
     exit;
 }
 
-// Handle preflight CORS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
+// -------------------- Check Imagick --------------------
 if(!extension_loaded('imagick')){
-    respondError('Server misconfiguration: imagick not installed', 500);
+    respondError('Server misconfiguration: Imagick not installed', 500);
 }
 
-// Define variables (replace these with your actual logic)
-$uploadedPath = '/path/to/uploaded/file.pdf';
-$scale = 100;
-$format = 'jpg';
-$quality = 90;
-$workDir = '/tmp/pdfconvert_' . uniqid();
+// -------------------- Check uploaded file --------------------
+if(!isset($_FILES['pdf']) || $_FILES['pdf']['error'] !== UPLOAD_ERR_OK){
+    respondError('No PDF file uploaded or upload error');
+}
 
+$uploadedPath = $_FILES['pdf']['tmp_name'];
+
+if(!file_exists($uploadedPath)){
+    respondError('Uploaded file not found.');
+}
+
+// -------------------- Optional POST parameters --------------------
+$scale = isset($_POST['scale']) ? intval($_POST['scale']) : 100;
+$format = (isset($_POST['format']) && strtolower($_POST['format']) === 'png') ? 'png' : 'jpg';
+$quality = isset($_POST['quality']) ? intval($_POST['quality']) : 90;
+
+// -------------------- Temporary working directory --------------------
+$workDir = sys_get_temp_dir() . '/pdfconvert_' . uniqid();
 mkdir($workDir);
 
+// -------------------- Processing PDF --------------------
 try {
     $im = new Imagick();
     $density = max(72, intval(72 * ($scale / 100)));
@@ -37,7 +51,7 @@ try {
     $im->readImage($uploadedPath);
 
     $images = [];
-    foreach(new ImagickIterator($im) as $i=>$page){
+    foreach(new ImagickIterator($im) as $i => $page){
         $page->setImageColorspace(Imagick::COLORSPACE_RGB);
         $page->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
         $page->mergeImageLayers(Imagick::LAYERMETHOD_FLATTEN);
@@ -59,6 +73,7 @@ try {
         $page->destroy();
     }
 
+    // -------------------- Create ZIP --------------------
     $zipPath = $workDir . '/images.zip';
     $zip = new ZipArchive();
     if($zip->open($zipPath, ZipArchive::CREATE)!==TRUE){
@@ -69,6 +84,7 @@ try {
     }
     $zip->close();
 
+    // -------------------- Send ZIP to client --------------------
     header('Content-Type: application/zip');
     header('Content-Disposition: attachment; filename="pdf-images.zip"');
     header('Content-Length: '.filesize($zipPath));
@@ -77,7 +93,9 @@ try {
 } catch(Exception $e){
     respondError('Processing error: '.$e->getMessage(), 500);
 } finally {
-    // cleanup
-    array_map('unlink', glob("$workDir/*.*"));
-    rmdir($workDir);
+    // -------------------- Cleanup --------------------
+    foreach(glob("$workDir/*") as $file){
+        @unlink($file);
+    }
+    @rmdir($workDir);
 }
