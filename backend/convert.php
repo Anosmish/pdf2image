@@ -27,18 +27,13 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Set temporary directory for fontconfig
-$tempDir = sys_get_temp_dir() . '/pdf_convert_' . uniqid();
-if (!is_dir($tempDir) && !mkdir($tempDir, 0777, true)) {
-    respondError('Failed to create temp directory', 500);
-}
-
-putenv('FONTCONFIG_PATH=' . $tempDir);
-putenv('HOME=' . $tempDir);
-
-// -------------------- Check Imagick and PDF support --------------------
+// -------------------- Check Required Extensions --------------------
 if (!extension_loaded('imagick')) {
     respondError('Imagick extension not loaded', 500);
+}
+
+if (!extension_loaded('zip')) {
+    respondError('Zip extension not loaded. Please install php-zip extension.', 500);
 }
 
 try {
@@ -50,6 +45,15 @@ try {
 } catch (Exception $e) {
     respondError('Imagick test failed: ' . $e->getMessage(), 500);
 }
+
+// Set temporary directory for fontconfig
+$tempDir = sys_get_temp_dir() . '/pdf_convert_' . uniqid();
+if (!is_dir($tempDir) && !mkdir($tempDir, 0777, true)) {
+    respondError('Failed to create temp directory', 500);
+}
+
+putenv('FONTCONFIG_PATH=' . $tempDir);
+putenv('HOME=' . $tempDir);
 
 // -------------------- Validate uploaded PDF --------------------
 if (!isset($_FILES['pdf']) || $_FILES['pdf']['error'] !== UPLOAD_ERR_OK) {
@@ -176,6 +180,12 @@ try {
 
     // -------------------- ZIP creation --------------------
     $zipPath = $workDir . '/images.zip';
+    
+    // Check if ZipArchive is available
+    if (!class_exists('ZipArchive')) {
+        throw new Exception('ZipArchive class not found. PHP Zip extension is missing.');
+    }
+    
     $zip = new ZipArchive();
     
     if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
