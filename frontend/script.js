@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('scale', document.getElementById('scale').value);
 
     try {
-      // Replace with your Render backend URL
       const backendUrl = 'https://pdf2image-gg8f.onrender.com/convert.php';
 
       const response = await fetch(backendUrl, {
@@ -28,7 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
         body: formData
       });
 
-      if (!response.ok) throw new Error('Conversion failed');
+      if (!response.ok) {
+        const json = await response.json();
+        throw new Error(json.error || 'Conversion failed');
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
