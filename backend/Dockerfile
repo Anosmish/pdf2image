@@ -21,19 +21,26 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Fix ImageMagick PDF policy - Remove or replace restrictive policies
+# Configure ImageMagick policy to allow PDF - FIXED PATH
 RUN if [ -f /etc/ImageMagick-6/policy.xml ]; then \
-        cp /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.backup && \
-        sed -i '/pattern="PDF"/d' /etc/ImageMagick-6/policy.xml; \
+        sed -i 's/rights="none" pattern="PDF"/rights="read | write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml; \
     elif [ -f /etc/ImageMagick-7/policy.xml ]; then \
-        cp /etc/ImageMagick-7/policy.xml /etc/ImageMagick-7/policy.xml.backup && \
-        sed -i '/pattern="PDF"/d' /etc/ImageMagick-7/policy.xml; \
+        sed -i 's/rights="none" pattern="PDF"/rights="read | write" pattern="PDF"/' /etc/ImageMagick-7/policy.xml; \
+    elif [ -f /etc/ImageMagick/policy.xml ]; then \
+        sed -i 's/rights="none" pattern="PDF"/rights="read | write" pattern="PDF"/' /etc/ImageMagick/policy.xml; \
+    else \
+        echo "No policy.xml found, creating one..." && \
+        mkdir -p /etc/ImageMagick-6 && \
+        echo '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE policymap [<!ELEMENT policymap (policy)+>]><policymap><policy domain="coder" rights="read | write" pattern="PDF" /></policymap>' > /etc/ImageMagick-6/policy.xml; \
     fi
 
-# Create policy file if it doesn't exist
-RUN if [ ! -f /etc/ImageMagick-6/policy.xml ] && [ ! -f /etc/ImageMagick-7/policy.xml ]; then \
-        mkdir -p /etc/ImageMagick-6 && \
+# Alternative: Completely replace the policy file to allow everything
+RUN if [ -f /etc/ImageMagick-6/policy.xml ]; then \
+        cp /etc/ImageMagick-6/policy.xml /etc/ImageMagick-6/policy.xml.bak && \
         echo '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE policymap [<!ELEMENT policymap (policy)+>]><policymap></policymap>' > /etc/ImageMagick-6/policy.xml; \
+    elif [ -f /etc/ImageMagick-7/policy.xml ]; then \
+        cp /etc/ImageMagick-7/policy.xml /etc/ImageMagick-7/policy.xml.bak && \
+        echo '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE policymap [<!ELEMENT policymap (policy)+>]><policymap></policymap>' > /etc/ImageMagick-7/policy.xml; \
     fi
 
 # Enable Apache mod_rewrite and mod_headers
@@ -46,7 +53,7 @@ RUN echo "log_errors = On" >> /usr/local/etc/php/conf.d/display_errors.ini
 # Copy backend files
 COPY . /var/www/html/
 
-# Copy custom php.ini
+# Copy custom php.ini (if you have any)
 COPY php.ini /usr/local/etc/php/conf.d/
 
 # Ensure permissions
