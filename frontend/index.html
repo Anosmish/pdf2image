@@ -1,6 +1,8 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>PDF → Image Converter — Convert PDF pages to JPG/PNG</title>
 <meta name="description" content="Convert PDF pages to high-quality images (JPG/PNG). Minimal, fast & secure converter built with HTML, CSS, JS and PHP (Imagick).">
 <link rel="canonical" href="/index.html">
@@ -15,55 +17,58 @@
 <p class="tagline">Upload a PDF and get high-quality images for each page.</p>
 </header>
 
-
 <section class="upload-card">
-<form id="uploadForm" action="convert.php" method="post" enctype="multipart/form-data">
-<label for="pdfFile" class="file-label">Choose PDF file</label>
-<input id="pdfFile" name="pdf" type="file" accept="application/pdf" required>
-
+<form id="uploadForm" method="post" enctype="multipart/form-data">
+<label for="pdfFile" class="file-label">
+<span class="file-label-text">Choose PDF file</span>
+<span class="file-label-hint">Click to browse or drag & drop</span>
+</label>
+<input id="pdfFile" name="pdf" type="file" accept=".pdf,application/pdf" required>
 
 <div class="options">
-<label>Output format
+<label class="option-group">
+<span class="option-label">Output format</span>
 <select name="format" id="format">
-<option value="jpg">JPG (smaller)</option>
-<option value="png">PNG (lossless)</option>
+<option value="jpg">JPG (smaller file)</option>
+<option value="png">PNG (better quality)</option>
 </select>
 </label>
 
-
-<label>Quality (JPG)
-<input type="number" name="quality" id="quality" min="40" max="100" value="85">
+<label class="option-group">
+<span class="option-label">Quality</span>
+<input type="range" name="quality" id="quality" min="40" max="100" value="85">
+<span class="quality-value" id="qualityValue">85%</span>
 </label>
 
-
-<label>Scale (%)
-<input type="number" name="scale" id="scale" min="50" max="300" value="150">
+<label class="option-group">
+<span class="option-label">Scale</span>
+<input type="range" name="scale" id="scale" min="50" max="300" value="150">
+<span class="scale-value" id="scaleValue">150%</span>
 </label>
 </div>
 
-
-<button type="submit" class="btn" id="convertBtn">Convert & Download</button>
-
+<button type="submit" class="btn" id="convertBtn">
+<span class="btn-text">Convert & Download</span>
+<span class="btn-loading" style="display: none;">Processing...</span>
+</button>
 
 <div id="status" aria-live="polite" class="status"></div>
 </form>
 
-
 <aside class="notes">
 <h3>Notes</h3>
 <ul>
-<li>Max upload size: <strong id="maxSizeDisplay">8 MB</strong> (server-side limit applies).</li>
-<li>Each PDF page is converted and returned in a ZIP archive.</li>
+<li>Max upload size: <strong>20 MB</strong></li>
+<li>Each PDF page is converted and returned in a ZIP archive</li>
+<li>Works on all modern browsers and mobile devices</li>
 </ul>
 </aside>
 </section>
-
 
 <footer class="footer">
 <p>Made with care • Minimal & privacy mindful</p>
 </footer>
 </main>
-
 
 <script src="script.js" defer></script>
 </body>
