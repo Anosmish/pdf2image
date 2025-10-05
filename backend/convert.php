@@ -4,7 +4,7 @@ header("Access-Control-Allow-Origin: https://pdf2picture.netlify.app");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Preflight
+// Preflight request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -24,8 +24,8 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // -------------------- Fontconfig fix --------------------
-putenv('FONTCONFIG_PATH=/tmp');
-putenv('HOME=/tmp');
+putenv('FONTCONFIG_PATH=' . sys_get_temp_dir());
+putenv('HOME=' . sys_get_temp_dir());
 
 // -------------------- Check Imagick --------------------
 if (!extension_loaded('imagick')) {
@@ -46,8 +46,10 @@ if (!isset($_FILES['pdf']) || $_FILES['pdf']['error'] !== UPLOAD_ERR_OK) {
 $uploadedPath = $_FILES['pdf']['tmp_name'];
 
 if (!file_exists($uploadedPath)) {
-    respondError('Uploaded file not found', 400);
+    respondError("Uploaded PDF not found at $uploadedPath", 400);
 }
+
+error_log("Uploaded file path: $uploadedPath");
 
 // -------------------- Optional POST parameters --------------------
 $scale = isset($_POST['scale']) ? intval($_POST['scale']) : 100;
@@ -65,7 +67,15 @@ try {
     $im = new Imagick();
     $density = max(72, intval(72 * ($scale / 100)));
     $im->setResolution($density, $density);
+
+    // Read PDF pages
     $im->readImage($uploadedPath);
+    $pageCount = $im->getNumberImages();
+    error_log("Number of pages detected: $pageCount");
+
+    if ($pageCount === 0) {
+        respondError('PDF contains no pages or cannot be read.', 500);
+    }
 
     $images = [];
     foreach (new ImagickIterator($im) as $i => $page) {
@@ -94,7 +104,7 @@ try {
     }
 
     if (empty($images)) {
-        respondError('No images generated. Check PDF validity and Ghostscript installation.', 500);
+        respondError('No images were generated. Check PDF and Ghostscript installation.', 500);
     }
 
     // -------------------- Create ZIP --------------------
@@ -118,6 +128,7 @@ try {
 } catch (Exception $e) {
     respondError('Processing error: ' . $e->getMessage(), 500);
 } finally {
+    // -------------------- Cleanup --------------------
     foreach (glob("$workDir/*") as $file) {
         @unlink($file);
     }
