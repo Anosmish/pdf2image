@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // Replace with your Render backend URL
-      const backendUrl = 'https://your-backend.onrender.com/convert.php';
+      const backendUrl = 'https://pdf2image-gg8f.onrender.com/convert.php';
 
       const response = await fetch(backendUrl, {
         method: 'POST',
