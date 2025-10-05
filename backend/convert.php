@@ -1,4 +1,7 @@
 <?php
+header("Access-Control-Allow-Origin: https://pdf2picture.netlify.app");
+header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
 if(!extension_loaded('imagick')){
 respondError('Server misconfiguration: imagick not installed', 500);
 }
