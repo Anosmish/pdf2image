@@ -22,11 +22,11 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Fontconfig fix
+// Fontconfig fix for Imagick on Render
 putenv('FONTCONFIG_PATH=' . sys_get_temp_dir());
 putenv('HOME=' . sys_get_temp_dir());
 
-// Check Imagick and PDF support
+// -------------------- Check Imagick --------------------
 if (!extension_loaded('imagick')) respondError('Imagick not installed', 500);
 $imCheck = new Imagick();
 if (!in_array('PDF', $imCheck->queryFormats())) {
@@ -50,7 +50,7 @@ $quality = isset($_POST['quality']) ? intval($_POST['quality']) : 90;
 
 // -------------------- Temporary working directory --------------------
 $workDir = sys_get_temp_dir() . '/pdfconvert_' . uniqid();
-if (!mkdir($workDir, 0777, true) && !is_dir($workDir)) {
+if (!is_dir($workDir) && !mkdir($workDir, 0777, true)) {
     respondError('Failed to create temporary directory: ' . $workDir, 500);
 }
 chmod($workDir, 0777);
@@ -61,6 +61,7 @@ try {
     $im = new Imagick();
     $density = max(72, intval(72 * ($scale / 100)));
     $im->setResolution($density, $density);
+
     $im->readImage($uploadedPath);
 
     $pageCount = $im->getNumberImages();
@@ -82,6 +83,7 @@ try {
         }
 
         $outName = sprintf('%s/page-%03d.%s', $workDir, $i + 1, $format === 'jpg' ? 'jpg' : 'png');
+
         if (!$page->writeImage($outName)) {
             error_log("Failed to write image: $outName");
         } else {
@@ -105,6 +107,7 @@ try {
         $zip->addFile($img, basename($img));
     }
     $zip->close();
+    error_log("ZIP created at: $zipPath");
 
     // -------------------- Send ZIP --------------------
     header('Content-Type: application/zip');
