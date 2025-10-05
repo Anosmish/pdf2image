@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDF → Image Converter — Convert PDF pages to JPG/PNG</title>
+<meta name="description" content="Convert PDF pages to high-quality images (JPG/PNG). Minimal, fast & secure converter built with HTML, CSS, JS and PHP (Imagick).">
+<link rel="canonical" href="/index.html">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0f172a">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="page">
+<header class="header">
+<h1 class="site-title">PDF → Image Converter</h1>
+<p class="tagline">Upload a PDF and get high-quality images for each page.</p>
+</header>
+
+
+<section class="upload-card">
+<form id="uploadForm" action="convert.php" method="post" enctype="multipart/form-data">
+<label for="pdfFile" class="file-label">Choose PDF file</label>
+<input id="pdfFile" name="pdf" type="file" accept="application/pdf" required>
+
+
+<div class="options">
+<label>Output format
+<select name="format" id="format">
+<option value="jpg">JPG (smaller)</option>
+<option value="png">PNG (lossless)</option>
+</select>
+</label>
+
+
+<label>Quality (JPG)
+<input type="number" name="quality" id="quality" min="40" max="100" value="85">
+</label>
+
+
+<label>Scale (%)
+<input type="number" name="scale" id="scale" min="50" max="300" value="150">
+</label>
+</div>
+
+
+<button type="submit" class="btn" id="convertBtn">Convert & Download</button>
+
+
+<div id="status" aria-live="polite" class="status"></div>
+</form>
+
+
+<aside class="notes">
+<h3>Notes</h3>
+<ul>
+<li>Max upload size: <strong id="maxSizeDisplay">8 MB</strong> (server-side limit applies).</li>
+<li>Each PDF page is converted and returned in a ZIP archive.</li>
+</ul>
+</aside>
+</section>
+
+
+<footer class="footer">
+<p>Made with care • Minimal & privacy mindful</p>
+</footer>
+</main>
+
+
+<script src="script.js" defer></script>
+</body>
+</html>

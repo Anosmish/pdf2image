@@ -1,0 +1,81 @@
+/* Reset */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', Arial, sans-serif;
+    background: #f0f4f8;
+    color: #0f172a;
+    padding: 20px;
+}
+
+.page {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 2rem;
+    color: #0ea5a4;
+    margin-bottom: 5px;
+}
+
+header p {
+    color: #51606a;
+    font-size: 1rem;
+}
+
+.upload-card {
+    background: #fff;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+label {
+    display: block;
+    margin-bottom: 15px;
+    font-weight: 500;
+    color: #334155;
+}
+
+input[type="file"], input[type="number"], select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 0.95rem;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: #0ea5a4;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background: #14b8a6;
+}
+
+#status {
+    margin-top: 15px;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 600px) {
+    .page { padding: 15px; }
+    header h1 { font-size: 1.5rem; }
+}
