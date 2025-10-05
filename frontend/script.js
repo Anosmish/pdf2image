@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('scale', document.getElementById('scale').value);
 
     try {
-      const backendUrl = 'https://your-backend.onrender.com/convert.php';
+      const backendUrl = 'https://pdf2image-gg8f.onrender.com/convert.php';
       const response = await fetch(backendUrl, { method: 'POST', body: formData });
 
       if (!response.ok) {
