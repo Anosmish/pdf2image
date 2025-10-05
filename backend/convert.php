@@ -4,13 +4,13 @@ header("Access-Control-Allow-Origin: https://pdf2picture.netlify.app");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Handle preflight request
+// Preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-// -------------------- Helper function --------------------
+// -------------------- Error handling --------------------
 function respondError($message, $code = 400) {
     http_response_code($code);
     header('Content-Type: application/json');
@@ -18,20 +18,31 @@ function respondError($message, $code = 400) {
     exit;
 }
 
+// Enable PHP error logging for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // -------------------- Check Imagick --------------------
-if(!extension_loaded('imagick')){
-    respondError('Server misconfiguration: Imagick not installed', 500);
+if (!extension_loaded('imagick')) {
+    respondError('Imagick not installed', 500);
+}
+
+// Check PDF support
+$imCheck = new Imagick();
+if (!in_array('PDF', $imCheck->queryFormats())) {
+    respondError('Imagick does not support PDF. Ghostscript may be missing.', 500);
 }
 
 // -------------------- Check uploaded file --------------------
-if(!isset($_FILES['pdf']) || $_FILES['pdf']['error'] !== UPLOAD_ERR_OK){
+if (!isset($_FILES['pdf']) || $_FILES['pdf']['error'] !== UPLOAD_ERR_OK) {
     respondError('No PDF file uploaded or upload error');
 }
 
 $uploadedPath = $_FILES['pdf']['tmp_name'];
 
-if(!file_exists($uploadedPath)){
-    respondError('Uploaded file not found.');
+if (!file_exists($uploadedPath)) {
+    respondError('Uploaded file not found');
 }
 
 // -------------------- Optional POST parameters --------------------
@@ -41,22 +52,26 @@ $quality = isset($_POST['quality']) ? intval($_POST['quality']) : 90;
 
 // -------------------- Temporary working directory --------------------
 $workDir = sys_get_temp_dir() . '/pdfconvert_' . uniqid();
-mkdir($workDir);
+if (!mkdir($workDir, 0777, true)) {
+    respondError('Failed to create temporary directory', 500);
+}
 
-// -------------------- Processing PDF --------------------
+// -------------------- PDF conversion --------------------
 try {
     $im = new Imagick();
     $density = max(72, intval(72 * ($scale / 100)));
     $im->setResolution($density, $density);
+
+    // Read PDF pages
     $im->readImage($uploadedPath);
 
     $images = [];
-    foreach(new ImagickIterator($im) as $i => $page){
+    foreach (new ImagickIterator($im) as $i => $page) {
         $page->setImageColorspace(Imagick::COLORSPACE_RGB);
         $page->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
         $page->mergeImageLayers(Imagick::LAYERMETHOD_FLATTEN);
 
-        if($format === 'jpg'){
+        if ($format === 'jpg') {
             $page->setImageFormat('jpeg');
             $page->setImageCompression(Imagick::COMPRESSION_JPEG);
             $page->setImageCompressionQuality($quality);
@@ -64,8 +79,11 @@ try {
             $page->setImageFormat('png');
         }
 
-        $outName = sprintf('%s/page-%03d.%s', $workDir, $i+1, $format === 'jpg' ? 'jpg' : 'png');
-        if($page->writeImage($outName)){
+        $outName = sprintf('%s/page-%03d.%s', $workDir, $i + 1, $format === 'jpg' ? 'jpg' : 'png');
+
+        if (!$page->writeImage($outName)) {
+            error_log("Failed to write image: $outName");
+        } else {
             $images[] = $outName;
         }
 
@@ -73,28 +91,33 @@ try {
         $page->destroy();
     }
 
+    if (empty($images)) {
+        respondError('No images generated. Ensure PDF is valid and Ghostscript is installed.', 500);
+    }
+
     // -------------------- Create ZIP --------------------
     $zipPath = $workDir . '/images.zip';
     $zip = new ZipArchive();
-    if($zip->open($zipPath, ZipArchive::CREATE)!==TRUE){
+    if ($zip->open($zipPath, ZipArchive::CREATE) !== TRUE) {
         respondError('Failed to create ZIP archive', 500);
     }
-    foreach($images as $img){
+
+    foreach ($images as $img) {
         $zip->addFile($img, basename($img));
     }
     $zip->close();
 
-    // -------------------- Send ZIP to client --------------------
+    // -------------------- Send ZIP --------------------
     header('Content-Type: application/zip');
     header('Content-Disposition: attachment; filename="pdf-images.zip"');
-    header('Content-Length: '.filesize($zipPath));
+    header('Content-Length: ' . filesize($zipPath));
     readfile($zipPath);
 
-} catch(Exception $e){
-    respondError('Processing error: '.$e->getMessage(), 500);
+} catch (Exception $e) {
+    respondError('Processing error: ' . $e->getMessage(), 500);
 } finally {
     // -------------------- Cleanup --------------------
-    foreach(glob("$workDir/*") as $file){
+    foreach (glob("$workDir/*") as $file) {
         @unlink($file);
     }
     @rmdir($workDir);
