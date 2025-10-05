@@ -14,14 +14,14 @@ RUN apt-get update && \
         libpng-dev \
         libonig-dev \
         libxml2-dev \
-        libzip-dev && \  # Added libzip-dev for Zip extension
+        libzip-dev && \
     pecl install imagick && \
     docker-php-ext-enable imagick && \
-    docker-php-ext-install mbstring exif pcntl bcmath gd zip && \  # Added zip here
+    docker-php-ext-install mbstring exif pcntl bcmath gd zip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Configure ImageMagick policy to allow PDF - FIXED PATH
+# Configure ImageMagick policy to allow PDF
 RUN if [ -f /etc/ImageMagick-6/policy.xml ]; then \
         sed -i 's/rights="none" pattern="PDF"/rights="read | write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml; \
     elif [ -f /etc/ImageMagick-7/policy.xml ]; then \
@@ -53,7 +53,7 @@ RUN echo "log_errors = On" >> /usr/local/etc/php/conf.d/display_errors.ini
 # Copy backend files
 COPY . /var/www/html/
 
-# Copy custom php.ini (if you have any)
+# Copy custom php.ini
 COPY php.ini /usr/local/etc/php/conf.d/
 
 # Ensure permissions
